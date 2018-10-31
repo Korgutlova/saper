@@ -1,5 +1,7 @@
 module Main where
 
+import Data.Char
+
 data State a = Mine | NotOpen | Cell a deriving(Show)
 
 data Action = Open | Flag deriving(Show)
