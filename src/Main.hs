@@ -2,17 +2,7 @@ module Main where
 
 import Data.Char
 
-data State a = Mine | NotOpen | Cell a deriving(Show)
 
-data Action = Open | Flag deriving(Show)
-
-type Point    = (Int, Int)
-type Board    = [[State Int]]
--- type ClueMap  = [[Int]] 
-type ExploredBoard = [[State Int]]
-
-
-size   = 1  -- size of cell
 width = 10  -- widht board
 height = 10 -- height board
 mines = 5 -- amount mines
