@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f35f1a46be7467efac3af8d3ccb569216211fc1224c40dcd9266a26d0a906f46
+-- hash: 01c91fbf4c4739e8d244e199b1a456ad71d9e8ec40dfdbc9273ce5410bc9c938
 
 name:           saper
 version:        0.1.0.0
@@ -21,9 +21,11 @@ extra-source-files:
 executable saper
   main-is: Main.hs
   other-modules:
+      Types
       Paths_saper
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
+    , random
   default-language: Haskell2010
