@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 289db6333419cf697cb3da2a689c694ba9048dee54b549d9a7db537fab491e44
+-- hash: 1e9c0b0951da2ddfe1b7a338a12e5a61770b93520e1a278255f67c3b67988a0d
 
 name:           saper
 version:        0.1.0.0
@@ -30,4 +30,5 @@ executable saper
   build-depends:
       base >=4.7 && <5
     , gloss
+    , random
   default-language: Haskell2010
