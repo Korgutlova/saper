@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1e9c0b0951da2ddfe1b7a338a12e5a61770b93520e1a278255f67c3b67988a0d
+-- hash: eb4ec18f5eadcc09c0181b7812e5c6a7205db344ea47b5b1347cdff39829d12b
 
 name:           saper
 version:        0.1.0.0
@@ -21,7 +21,6 @@ extra-source-files:
 executable saper
   main-is: Main.hs
   other-modules:
-      GuiExample
       Pics
       Types
       Paths_saper
