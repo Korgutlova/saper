@@ -30,9 +30,9 @@ loadImages = Images
   <$> fmap fold (loadJuicyPNG "img/bomb.png")
   <*> fmap fold (loadJuicyPNG "img/flag.png")
 
-example = [ [Mine, Open 1, Open 2, Open 3], 
-          [NotOpen, Open 3, Open 4, Mine],
-          [Open 1, Open 2, Open 3, Mine]] 
+example = [ [Mine, Cell 1, Cell 2, Cell 3], 
+          [NotOpen, Cell 3, Cell 4, Mine],
+          [Cell 1, Cell 2, Cell 3, Mine]] 
 
 initialWorld :: IO Game
 initialWorld = createGame <$> loadImages
