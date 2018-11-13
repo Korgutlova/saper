@@ -4,16 +4,18 @@ import Data.Char
 import System.Random
 import Control.Monad
 import Types
+import Pics
 
 minesN = 5 -- amount mines
 
 main :: IO ()
-main = do
-    putStrLn "This is saper game!"
-    g <- getStdGen
-    let mines = genMinePoints width height minesN g
-    putStrLn ("Mines:")
-    mapM_ (putStrLn . showTup) mines
+main = startGame
+-- main = do
+--     putStrLn "This is saper game!"
+--     g <- getStdGen
+--     let mines = genMinePoints width height minesN g
+--     putStrLn ("Mines:")
+--     mapM_ (putStrLn . showTup) mines
 --  gameBoard <- return $ genGameBoard width height mines
 
 instance (Random x, Random y) => Random (x, y) where
