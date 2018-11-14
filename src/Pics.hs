@@ -30,7 +30,7 @@ loadImages :: IO Images
 loadImages = Images
   <$> fmap fold (loadJuicyPNG "img/bomb.png")
   <*> fmap fold (loadJuicyPNG "img/flag.png")
-  <*> fmap fold (loadJuicyPNG "img/block1.png")
+  <*> fmap fold (loadJuicyPNG "img/block.png")
   <*> fmap fold (loadJuicyPNG "img/open.png")
 
 example = [ [Cell 1, Cell 2, NotOpen, NotOpen, Cell 1, NotOpen, NotOpen, NotOpen, Cell 1, NotOpen] 
