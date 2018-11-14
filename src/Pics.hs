@@ -16,23 +16,35 @@ startGame = do
 
 data Game = Game 
             { board :: ExploredBoard
-            , win   :: Bool
             , imgs  :: Images
             }
 
 data Images = Images 
-            { mina :: Picture
-            , flag :: Picture 
+            { mina  :: Picture
+            , flag  :: Picture 
+            , block :: Picture
+            , open  :: Picture
             }
 
 loadImages :: IO Images
 loadImages = Images
   <$> fmap fold (loadJuicyPNG "img/bomb.png")
   <*> fmap fold (loadJuicyPNG "img/flag.png")
+  <*> fmap fold (loadJuicyPNG "img/block1.png")
+  <*> fmap fold (loadJuicyPNG "img/open.png")
 
-example = [ [Mine, Cell 1, Cell 2, Cell 3], 
-          [NotOpen, Cell 3, Cell 4, Mine],
-          [Cell 1, Cell 2, Cell 3, Mine]] 
+example = [ [Cell 1, Cell 2, NotOpen, NotOpen, Cell 1, NotOpen, NotOpen, NotOpen, Cell 1, NotOpen] 
+          , [NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen]
+          , [NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen]
+          , [NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen]
+          , [NotOpen, NotOpen, Mine, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen]
+          , [NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen]
+          , [NotOpen, NotOpen, Cell 4, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen]
+          , [NotOpen, NotOpen, NotOpen, Cell 5, MineFlag, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen]
+          , [NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen]
+          , [NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen, NotOpen]
+          ]
+
 
 initialWorld :: IO Game
 initialWorld = createGame <$> loadImages
@@ -40,23 +52,29 @@ initialWorld = createGame <$> loadImages
 createGame :: Images -> Game
 createGame images = Game
     { board = example 
-    , win   = False
     , imgs  = images
     }
 
 draw :: Game -> Picture
 draw game = pictures 
-    [ translate (-250) (-200) (scale c c (drawGrid))
-    , translate (-230) (-180) (scale 0.1 0.1 (mina (imgs game)))
-    , translate (-230) (-80) (scale 0.1 0.1 (flag (imgs game)))]
+    [ drawEmpty x y s c (open (imgs game))  
+    , drawGrid
+    , drawBoard x y s txt c game]
     where
-    c = fromIntegral size
+        c = fromIntegral size
+        s = 0.096
+        txt = 0.3
+        x = fromIntegral initX
+        y = fromIntegral initY
 
-changeColor :: Picture
-changeColor = translate (-100) (-100) $ color green $ text ("Hi")
+generateArray :: (Float, Float) -> Float -> Float  -> [(Float, Float)]
+generateArray (0, y) k h = case k of 
+                        (-1) -> (0, 0):[]
+                        otherwise -> (0, y):generateArray (h, k) (k - 1) h
+generateArray (x, y) k h = (x, y):generateArray (x-1, y) k h
 
 drawGrid :: Picture
-drawGrid = color white (pictures (hs ++ vs))
+drawGrid = color (greyN 0.8) (pictures (hs ++ vs))
   where
     hs = map (\j -> line [(0, j), (n, j)]) [0..m]
     vs = map (\i -> line [(i, 0), (i, m)]) [0..n]
@@ -64,40 +82,69 @@ drawGrid = color white (pictures (hs ++ vs))
     n = fromIntegral width
     m = fromIntegral height
 
+drawEmpty :: Float -> Float -> Float -> Float -> Picture -> Picture
+drawEmpty x y s c img = pictures (b)
+    where
+        b = map (\(i, j) -> translate (x + j * c) (y - i * c) (scale s s img)) (generateArray (n, m) m n)
+        n = fromIntegral width - 1
+        m = fromIntegral height - 1
+
+drawBoard :: Float -> Float -> Float -> Float -> Float -> Game -> Picture
+drawBoard x y s txt c game = pictures (b)
+    where
+        b = map (\(i, j) -> case (getElem cust_map i j) of 
+                            NotOpen -> translate (x + j * c) (y - i * c) (scale s s (block (imgs game)))
+                            Mine -> translate (x + j * c) (y - i * c) (scale s s (mina (imgs game)))
+                            MineFlag -> translate (x + j * c) (y - i * c) (scale s s (flag (imgs game)))
+                            Cell z -> translate (x + j * c - deltax) (y - i * c - deltay) 
+                                        (scale txt txt (color black $ text (show z))))
+            (generateArray (n, m) m n)
+        cust_map = (board game)
+        n = fromIntegral width - 1
+        m = fromIntegral height - 1
+        deltax = fromIntegral 10
+        deltay = fromIntegral 15
+
+getElem :: ExploredBoard -> Float -> Float -> CellState Int
+getElem cust_map i j = cust_map !! (round i) !! (round j)
+
 handleEvent :: Event -> Game -> Game
 handleEvent (EventKey (MouseButton LeftButton) Down _ mouse) game = openCell (mouseToCell mouse) game
+handleEvent (EventKey (MouseButton RightButton) Down _ mouse) game = setFlag (mouseToCell mouse) game
 handleEvent _ w = w
 
 handleTime :: Float -> Game -> Game
 handleTime _ w = w
 
-logInfo :: Types.Point -> IO ()
-logInfo (i, j) = do 
-                    putStrLn("Point " ++ show (i,j))  
-                    -- putStrLn(show j)
+-- fix function
+mouseToCell :: G.Point  -> (Int, Int)
+mouseToCell (x, y) = (i, j)
+        where   
+            i = floor (x - fromIntegral initX) `div` size            
+            j = floor (y + fromIntegral initY) `div` size
 
-mouseToCell :: G.Point  -> IO (Int, Int)
-mouseToCell (x, y) = do    
-                        let i = floor (x + fromIntegral screenWidth) `div` size
-                        let j = floor (y + fromIntegral screenHeight) `div` size
-                        putStrLn ("Point "  ++ show (i, j)) 
-                        return (i, j) 
+changeCell2 :: Types.Point -> [[a]] -> a -> [[a]]
+changeCell2 (x, y) map newElem = 
+    let modified_row = replace2 y (map !! x) newElem
+    in replace2 x map modified_row
 
+replace2 :: Int -> [a] -> a -> [a]
+replace2 x map newElem = take x map ++ newElem : drop (x+1) map
 
-openCell :: IO (Int, Int) -> Game -> Game
-openCell _ game = game
-                    -- translate (-10) 50 $ color green $ text (i, j)
-                    -- return game
--- openCell _ game = game
+openCell :: (Int, Int) -> Game -> Game
+openCell (x, y) game = Game 
+                    { board = changeCell2 (x, y) (board game) (Cell 5)
+                    , imgs = (imgs game)
+                    }
+setFlag :: (Int, Int) -> Game -> Game
+setFlag (x, y) game = Game 
+                    { board = changeCell2 (x, y) (board game) (MineFlag)
+                    , imgs = (imgs game)
+                    }
 
-showTup2 :: (Show a, Show b) => (a,b) -> String
-showTup2 (a,b) = "Point (" ++ (show a) ++ "," ++ (show b) ++ ")" 
--- | Ширина экрана в пикселях.
-screenWidth :: Int
-screenWidth  = size * width
+initX :: Int
+initX = -270
 
--- | Высота экрана в пикселях.
-screenHeight :: Int
-screenHeight = size * height 
-
+initY :: Int
+initY = 220
 
