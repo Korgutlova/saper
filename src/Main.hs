@@ -1,23 +1,27 @@
 module Main where
 
 import Data.Char
+import Data.Foldable
+import Graphics.Gloss
+import Graphics.Gloss.Interface.IO.Interact as G
+import Graphics.Gloss.Juicy
 import System.Random
 import Control.Monad
 import Types
 import Pics
 
-
-minesN = 8 -- amount mines
+minesN = 10 -- amount mines
 
 main :: IO ()
 main = do
-    putStrLn "This is saper game!"
-    g <- getStdGen
-    let mines = genMinePoints width height minesN g
-    putStrLn ("Mines:")
-    mapM_ (putStrLn . showTup) mines
-    let gameMap = return $ createGameMap width height mines
-    mapM_ (putStrLn . unlines) $ map (map show) gameMap
+        putStrLn "This is saper game!"
+        g <- getStdGen
+        let mines = genMinePoints width height minesN g
+        putStrLn ("Mines:")
+        mapM_ (putStrLn . showTup) mines
+        let gameMap = return $ createGameMap width height mines
+        mapM_ (putStrLn . unlines) $ map (map show) gameMap
+        -- startGame
 
 
 -- random for tuples
@@ -28,11 +32,11 @@ instance (Random x, Random y) => Random (x, y) where
         in ((x, y), gen3)
 
 -- generate mines locations
-genMinePoints :: RandomGen g => Int -> Int -> Int -> g -> [Point]
+genMinePoints :: RandomGen g => Int -> Int -> Int -> g -> [Types.Point]
 genMinePoints w h n g = take n $ randomRs ((0,0),(w-1,h-1)) $ g :: [(Int,Int)]
 
 -- generate game map
-createGameMap :: Int -> Int -> [Point] -> GameMap
+createGameMap :: Int -> Int -> [Types.Point] -> GameMap
 createGameMap w h mines = foldr placeMine emptyMap mines
     where
         placeMine point mineMap = сalcCells point (addMine point mineMap)
@@ -51,7 +55,7 @@ incVal Mine = Mine
 
 
 -- return surriunding points
-surPoints :: Int -> Int -> Point -> [Point]
+surPoints :: Int -> Int -> Types.Point -> [Types.Point]
 surPoints w h (x, y) =
     filter (inBounds w h) [(x-1, y-1), (x, y-1), (x+1, y-1),
                            (x-1, y),             (x+1, y),
@@ -59,7 +63,7 @@ surPoints w h (x, y) =
 
 
 -- return is point in map bounds
-inBounds :: Int -> Int -> Point -> Bool
+inBounds :: Int -> Int -> Types.Point -> Bool
 inBounds w h (x, y)
     | x < 0     = False
     | x >= w    = False
@@ -69,7 +73,7 @@ inBounds w h (x, y)
 
 
 -- functions for change elem in 2d array
-changeCell :: Point -> [[a]] -> a -> [[a]]
+changeCell :: Types.Point -> [[a]] -> a -> [[a]]
 changeCell (x, y) map newElem = 
     let modified_row = replace y (map !! x) newElem
     in replace x map modified_row 
@@ -81,3 +85,143 @@ replace x map newElem = take x map ++ newElem : drop (x+1) map
 showTup :: (Show a, Show b) => (a, b) -> String
 showTup (a, b) = "(" ++ (show a) ++ "," ++ (show b) ++ ")" 
 
+startGame :: IO()
+startGame = do 
+        world <- initialWorld
+        play FullScreen blue 100 world  draw handleEvent handleTime
+
+loadImages :: IO Images
+loadImages = Images
+  <$> fmap fold (loadJuicyPNG "img/bomb.png")
+  <*> fmap fold (loadJuicyPNG "img/flag.png")
+  <*> fmap fold (loadJuicyPNG "img/block.png")
+  <*> fmap fold (loadJuicyPNG "img/open.png")
+
+initialWorld :: IO Game
+initialWorld = createGame <$> loadImages
+
+createGame :: Images -> Game
+createGame images = Game
+    { board = replicate width $ replicate height $ (NotOpen) 
+    , label = "This is saper game!" 
+    , imgs  = images
+    , win = False
+    }
+
+draw :: Game -> Picture
+draw game = pictures 
+    [ drawEmpty x y s c (open (imgs game))
+    , drawLabel (label game)  
+    , drawBoard x y s txt c game]
+    where
+        drawLabel label = translate (x) (y + 50) 
+                                        (scale txt txt (color black $ text label))
+        c = fromIntegral size
+        s = 0.096
+        txt = 0.3
+        x = fromIntegral initX
+        y = fromIntegral initY
+
+generateArray :: (Float, Float) -> Float -> Float  -> [(Float, Float)]
+generateArray (0, y) k h = case k of 
+                        (-1) -> (0, 0):[]
+                        otherwise -> (0, y):generateArray (h, k) (k - 1) h
+generateArray (x, y) k h = (x, y):generateArray (x-1, y) k h
+
+drawGrid :: Picture
+drawGrid = color (greyN 0.8) (pictures (hs ++ vs))
+  where
+    hs = map (\j -> line [(0, j), (n, j)]) [0..m]
+    vs = map (\i -> line [(i, 0), (i, m)]) [0..n]
+
+    n = fromIntegral width
+    m = fromIntegral height
+
+drawEmpty :: Float -> Float -> Float -> Float -> Picture -> Picture
+drawEmpty x y s c img = pictures (b)
+    where
+        b = map (\(i, j) -> translate (x + j * c) (y - i * c) (scale s s img)) (generateArray (n, m) m n)
+        n = fromIntegral width - 1
+        m = fromIntegral height - 1
+
+drawBoard :: Float -> Float -> Float -> Float -> Float -> Game -> Picture
+drawBoard x y s txt c game = pictures (b)
+    where
+        b = map (\(i, j) -> case (getElem cust_map i j) of 
+                            NotOpen -> translate (x + j * c) (y - i * c) (scale s s (block (imgs game)))
+                            Mine -> translate (x + j * c) (y - i * c) (scale s s (mine (imgs game)))
+                            MineFlag -> translate (x + j * c) (y - i * c) (scale s s (flag (imgs game)))
+                            Cell z -> translate (x + j * c - deltax) (y - i * c - deltay) 
+                                        (scale txt txt (color black $ text (show z))))
+            (generateArray (n, m) m n)
+        cust_map = (board game)
+        n = fromIntegral width - 1
+        m = fromIntegral height - 1
+        deltax = fromIntegral 10
+        deltay = fromIntegral 15
+
+getElem :: ExploredBoard -> Float -> Float -> CellState Int
+getElem cust_map i j = cust_map !! (round i) !! (round j)
+
+handleEvent :: Event -> Game -> Game
+handleEvent (EventKey (MouseButton k) Down _ mouse) game = case (win game) of 
+                                  False -> case value of 
+                                          (-1, -1) -> game
+                                          otherwise -> case k of 
+                                                      LeftButton -> check (openCell value game)
+                                                      RightButton -> check (setFlag value game)
+                                          where value = mouseToCell mouse
+                                  True -> game
+handleEvent _ w = w
+
+handleTime :: Float -> Game -> Game
+handleTime _ w = w
+
+mouseToCell :: G.Point  -> (Int, Int)
+mouseToCell (x, y) = case (i > -1 && i < height && j > -1 && j < height) of 
+                          True -> (j, i)
+                          False -> (-1, -1)
+        where   
+            i = floor (x - fromIntegral initX + delta) `div` size          
+            j = floor (fromIntegral height - y + fromIntegral initY + delta) `div` size 
+
+openCell :: (Int, Int) -> Game -> Game
+openCell (x, y) game = Game 
+                      { board = case b !! x !! y of 
+                                NotOpen -> changeCell (x, y) b (Cell 8)
+                                otherwise -> b
+                      , label = (label game)
+                      , imgs  = (imgs game)
+                      , win   = (win game)
+                      }
+                    where b = (board game)
+
+setFlag :: (Int, Int) -> Game -> Game
+setFlag (x, y) game = Game 
+                    { board = case b !! x !! y of 
+                              NotOpen -> changeCell (x, y)  b (MineFlag)
+                              MineFlag -> changeCell (x, y)  b (NotOpen)
+                              otherwise -> b
+                    , label = (label game)
+                    , imgs  = (imgs game)
+                    , win   = (win game)
+                    }
+                    where b = (board game)
+
+check :: Game -> Game
+check game = case cond of 
+              True -> Game 
+                      { board = b
+                      , label = "YOU WIN!!!"
+                      , imgs  = (imgs game)
+                      , win   = True
+                      }
+              False -> game
+            where 
+              x = checkBoard (board game)
+              cond = fst x
+              b = snd x
+
+-- check the board on the opening of all cells 
+checkBoard :: ExploredBoard -> (Bool, ExploredBoard)
+checkBoard b = (False, b)
