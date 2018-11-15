@@ -9,7 +9,7 @@ import System.Random
 import Control.Monad
 import Types
 
-minesN = 10 -- amount mines
+minesN = 20 -- amount mines
 
 main :: IO ()
 main = do
@@ -86,17 +86,18 @@ showTup (a, b) = "(" ++ (show a) ++ "," ++ (show b) ++ ")"
 
 
 -- check the board on the opening of all cells 
-checkBoard :: GameMap -> Bool
+checkBoard :: ExploredBoard -> Bool
 checkBoard b = False
 
 -- октрытие клетки/клеток на вход подается пара (x, y) на выход возвращается доска 
 openCell :: Types.Point -> GameMap -> ExploredBoard -> ExploredBoard
 openCell coord gameMap explBoard = explBoard
--- openCell coord explBoard = changeCell coord explBoard (Cell 3)
+-- openCell coord gameMap explBoard = changeCell coord explBoard (Cell 0)
 
--- подается координата (x, y) если она явлется бомбой, выдать True, иначе False
 checkMine :: Types.Point -> GameMap -> Bool
-checkMine coord gameMap = False
+checkMine coord gameMap = case (gameMap !! (fst coord) !! (snd coord)) of 
+                        Mine -> True
+                        otherwise -> False
 
 loadImages :: IO Images
 loadImages = Images
@@ -157,6 +158,7 @@ drawBoard x y s txt c game = pictures (b)
                             NotOpen    -> translate (x + j * c) (y - i * c) (scale s s (block (imgs game)))
                             Mine       -> translate (x + j * c) (y - i * c) (scale s s (mine (imgs game)))
                             MineFlag   -> translate (x + j * c) (y - i * c) (scale s s (flag (imgs game)))
+                            Cell 0     -> translate (x + j * c) (y - i * c) (scale s s (open (imgs game)))
                             Cell z     -> translate (x + j * c - deltax) (y - i * c - deltay) 
                                         (scale txt txt (color black $ text (show z))))
             (generateArray (n, m) m n)
