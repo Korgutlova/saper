@@ -13,14 +13,15 @@ minesN = 10 -- amount mines
 
 main :: IO ()
 main = do
-        putStrLn "This is saper game!"
+        -- putStrLn "This is saper game!"
         g <- getStdGen
         let mines = genMinePoints width height minesN g
-        putStrLn ("Mines:")
+        -- putStrLn ("Mines:")
         mapM_ (putStrLn . showTup) mines
-        let gameMap = return $ createGameMap width height mines
-        mapM_ (putStrLn . unlines) $ map (map show) gameMap
-        -- startGame
+        let gameMap = createGameMap width height mines
+        -- mapM_ (putStrLn . unlines) $ map (map show) gameMap
+        world <- createGame gameMap <$> loadImages
+        play FullScreen blue 100 world draw handleEvent handleTime
 
 
 -- random for tuples
@@ -101,13 +102,6 @@ checkMine coord = False
 openFullMap :: ExploredBoard
 openFullMap = [[]]
 
-
-
-startGame :: IO()
-startGame = do 
-        world <- initialWorld
-        play FullScreen blue 100 world  draw handleEvent handleTime
-
 loadImages :: IO Images
 loadImages = Images
   <$> fmap fold (loadJuicyPNG "img/bomb.png")
@@ -115,12 +109,10 @@ loadImages = Images
   <*> fmap fold (loadJuicyPNG "img/block.png")
   <*> fmap fold (loadJuicyPNG "img/open.png")
 
-initialWorld :: IO Game
-initialWorld = createGame <$> loadImages
-
-createGame :: Images -> Game
-createGame images = Game
-    { board = replicate width $ replicate height $ (NotOpen) 
+createGame :: GameMap -> Images -> Game
+createGame gamemap images = Game
+    -- { board = replicate width $ replicate height $ (NotOpen) 
+    { board =gamemap
     , label = "This is saper game!" 
     , imgs  = images
     , win = False
