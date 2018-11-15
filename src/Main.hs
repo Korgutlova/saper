@@ -8,7 +8,6 @@ import Graphics.Gloss.Juicy
 import System.Random
 import Control.Monad
 import Types
-import Pics
 
 minesN = 10 -- amount mines
 
@@ -47,7 +46,6 @@ createGameMap w h mines = foldr placeMine emptyMap mines
         createEmptyMap w h = replicate w $ replicate h $ (Cell 0)
 
 
-
 -- incrementing cell value
 incVal :: (CellState Int) -> (CellState Int)
 incVal (Cell i) = (Cell (i+1))
@@ -83,7 +81,27 @@ replace x map newElem = take x map ++ newElem : drop (x+1) map
 
 -- for debug
 showTup :: (Show a, Show b) => (a, b) -> String
-showTup (a, b) = "(" ++ (show a) ++ "," ++ (show b) ++ ")" 
+showTup (a, b) = "(" ++ (show a) ++ "," ++ (show b) ++ ")"
+
+
+-- check the board on the opening of all cells 
+checkBoard :: ExploredBoard -> Bool
+checkBoard b = False
+
+-- октрытие клетки/клеток на вход подается пара (x, y) на выход возвращается доска 
+openCell :: Types.Point -> ExploredBoard -> ExploredBoard
+openCell coord explBoard = explBoard
+-- openCell coord explBoard = changeCell coord explBoard (Cell 3)
+
+-- подается координата (x, y) если она явлется бомбой, выдать True, иначе False
+checkMine :: Types.Point -> Bool
+checkMine coord = False
+
+-- октрывается все карта, при проигрыше или выигрыше 
+openFullMap :: ExploredBoard
+openFullMap = [[]]
+
+
 
 startGame :: IO()
 startGame = do 
@@ -116,11 +134,11 @@ draw game = pictures
     where
         drawLabel label = translate (x) (y + 50) 
                                         (scale txt txt (color black $ text label))
-        c = fromIntegral size
-        s = 0.096
+        c   = fromIntegral size
+        s   = 0.096
         txt = 0.3
-        x = fromIntegral initX
-        y = fromIntegral initY
+        x   = fromIntegral initX
+        y   = fromIntegral initY
 
 generateArray :: (Float, Float) -> Float -> Float  -> [(Float, Float)]
 generateArray (0, y) k h = case k of 
@@ -134,8 +152,8 @@ drawGrid = color (greyN 0.8) (pictures (hs ++ vs))
     hs = map (\j -> line [(0, j), (n, j)]) [0..m]
     vs = map (\i -> line [(i, 0), (i, m)]) [0..n]
 
-    n = fromIntegral width
-    m = fromIntegral height
+    n  = fromIntegral width
+    m  = fromIntegral height
 
 drawEmpty :: Float -> Float -> Float -> Float -> Picture -> Picture
 drawEmpty x y s c img = pictures (b)
@@ -148,17 +166,17 @@ drawBoard :: Float -> Float -> Float -> Float -> Float -> Game -> Picture
 drawBoard x y s txt c game = pictures (b)
     where
         b = map (\(i, j) -> case (getElem cust_map i j) of 
-                            NotOpen -> translate (x + j * c) (y - i * c) (scale s s (block (imgs game)))
-                            Mine -> translate (x + j * c) (y - i * c) (scale s s (mine (imgs game)))
-                            MineFlag -> translate (x + j * c) (y - i * c) (scale s s (flag (imgs game)))
-                            Cell z -> translate (x + j * c - deltax) (y - i * c - deltay) 
+                            NotOpen    -> translate (x + j * c) (y - i * c) (scale s s (block (imgs game)))
+                            Mine       -> translate (x + j * c) (y - i * c) (scale s s (mine (imgs game)))
+                            MineFlag   -> translate (x + j * c) (y - i * c) (scale s s (flag (imgs game)))
+                            Cell z     -> translate (x + j * c - deltax) (y - i * c - deltay) 
                                         (scale txt txt (color black $ text (show z))))
             (generateArray (n, m) m n)
         cust_map = (board game)
-        n = fromIntegral width - 1
-        m = fromIntegral height - 1
-        deltax = fromIntegral 10
-        deltay = fromIntegral 15
+        n        = fromIntegral width - 1
+        m        = fromIntegral height - 1
+        deltax   = fromIntegral 10
+        deltay   = fromIntegral 15
 
 getElem :: ExploredBoard -> Float -> Float -> CellState Int
 getElem cust_map i j = cust_map !! (round i) !! (round j)
@@ -168,7 +186,7 @@ handleEvent (EventKey (MouseButton k) Down _ mouse) game = case (win game) of
                                   False -> case value of 
                                           (-1, -1) -> game
                                           otherwise -> case k of 
-                                                      LeftButton -> check (openCell value game)
+                                                      LeftButton -> check (openCellGUI value game)
                                                       RightButton -> check (setFlag value game)
                                           where value = mouseToCell mouse
                                   True -> game
@@ -185,17 +203,23 @@ mouseToCell (x, y) = case (i > -1 && i < height && j > -1 && j < height) of
             i = floor (x - fromIntegral initX + delta) `div` size          
             j = floor (fromIntegral height - y + fromIntegral initY + delta) `div` size 
 
-openCell :: (Int, Int) -> Game -> Game
-openCell (x, y) game = Game 
-                      { board = case b !! x !! y of 
-                                NotOpen -> changeCell (x, y) b (Cell 8)
+openCellGUI :: (Int, Int) -> Game -> Game
+openCellGUI (x, y) game = case checkMine (x, y) of
+                    True -> Game
+                        {  board = openFullMap 
+                         , label = "GAME OVER!!"
+                         , imgs  = (imgs game)
+                         , win   = True
+                        }
+                    False -> Game 
+                        { board = case b !! x !! y of 
+                                NotOpen   -> openCell (x, y) b              
                                 otherwise -> b
-                      , label = (label game)
-                      , imgs  = (imgs game)
-                      , win   = (win game)
-                      }
-                    where b = (board game)
-
+                          , label = (label game)
+                          , imgs  = (imgs game)
+                          , win   = (win game)
+                        }
+                where b = (board game)
 setFlag :: (Int, Int) -> Game -> Game
 setFlag (x, y) game = Game 
                     { board = case b !! x !! y of 
@@ -209,19 +233,12 @@ setFlag (x, y) game = Game
                     where b = (board game)
 
 check :: Game -> Game
-check game = case cond of 
+check game = case checkBoard (board game) of 
               True -> Game 
-                      { board = b
+                      { board = openFullMap
                       , label = "YOU WIN!!!"
                       , imgs  = (imgs game)
                       , win   = True
                       }
               False -> game
-            where 
-              x = checkBoard (board game)
-              cond = fst x
-              b = snd x
-
--- check the board on the opening of all cells 
-checkBoard :: ExploredBoard -> (Bool, ExploredBoard)
-checkBoard b = (False, b)
+              
