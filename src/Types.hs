@@ -10,7 +10,8 @@ type GameMap        = [[CellState Int]]
 type ExploredBoard  = [[CellState Int]]
 
 data Game = Game 
-            { board :: ExploredBoard
+            { closeBoard :: GameMap
+            , board :: ExploredBoard
             , label :: String
             , imgs  :: Images
             , win   :: Bool

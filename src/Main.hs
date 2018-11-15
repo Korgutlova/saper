@@ -86,21 +86,17 @@ showTup (a, b) = "(" ++ (show a) ++ "," ++ (show b) ++ ")"
 
 
 -- check the board on the opening of all cells 
-checkBoard :: ExploredBoard -> Bool
+checkBoard :: GameMap -> Bool
 checkBoard b = False
 
 -- октрытие клетки/клеток на вход подается пара (x, y) на выход возвращается доска 
-openCell :: Types.Point -> ExploredBoard -> ExploredBoard
-openCell coord explBoard = explBoard
+openCell :: Types.Point -> GameMap -> ExploredBoard -> ExploredBoard
+openCell coord gameMap explBoard = explBoard
 -- openCell coord explBoard = changeCell coord explBoard (Cell 3)
 
 -- подается координата (x, y) если она явлется бомбой, выдать True, иначе False
-checkMine :: Types.Point -> Bool
-checkMine coord = False
-
--- октрывается все карта, при проигрыше или выигрыше 
-openFullMap :: ExploredBoard
-openFullMap = [[]]
+checkMine :: Types.Point -> GameMap -> Bool
+checkMine coord gameMap = False
 
 loadImages :: IO Images
 loadImages = Images
@@ -111,8 +107,8 @@ loadImages = Images
 
 createGame :: GameMap -> Images -> Game
 createGame gamemap images = Game
-    -- { board = replicate width $ replicate height $ (NotOpen) 
-    { board =gamemap
+    { board = replicate width $ replicate height $ (NotOpen) 
+    , closeBoard =gamemap
     , label = "This is saper game!" 
     , imgs  = images
     , win = False
@@ -196,17 +192,19 @@ mouseToCell (x, y) = case (i > -1 && i < height && j > -1 && j < height) of
             j = floor (fromIntegral height - y + fromIntegral initY + delta) `div` size 
 
 openCellGUI :: (Int, Int) -> Game -> Game
-openCellGUI (x, y) game = case checkMine (x, y) of
+openCellGUI (x, y) game = case checkMine (x, y) (closeBoard game) of
                     True -> Game
-                        {  board = openFullMap 
+                        {  board = (closeBoard game)
+                         , closeBoard = (closeBoard game)
                          , label = "GAME OVER!!"
                          , imgs  = (imgs game)
                          , win   = True
                         }
                     False -> Game 
                         { board = case b !! x !! y of 
-                                NotOpen   -> openCell (x, y) b              
+                                NotOpen   -> openCell (x, y) (closeBoard game) b           
                                 otherwise -> b
+                          , closeBoard = (closeBoard game)
                           , label = (label game)
                           , imgs  = (imgs game)
                           , win   = (win game)
@@ -218,6 +216,7 @@ setFlag (x, y) game = Game
                               NotOpen -> changeCell (x, y)  b (MineFlag)
                               MineFlag -> changeCell (x, y)  b (NotOpen)
                               otherwise -> b
+                    , closeBoard = (closeBoard game)
                     , label = (label game)
                     , imgs  = (imgs game)
                     , win   = (win game)
@@ -227,7 +226,8 @@ setFlag (x, y) game = Game
 check :: Game -> Game
 check game = case checkBoard (board game) of 
               True -> Game 
-                      { board = openFullMap
+                      { closeBoard = (closeBoard game)
+                      , board = (closeBoard game)
                       , label = "YOU WIN!!!"
                       , imgs  = (imgs game)
                       , win   = True
