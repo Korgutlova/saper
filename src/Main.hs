@@ -41,15 +41,15 @@ createGameMap w h mines = foldr placeMine emptyMap mines
     where
         placeMine point mineMap = сalcCells point (addMine point mineMap)
         addMine point mineMap = changeCell point mineMap (Mine)
-        сalcCells point mineMap = foldr сalCell mineMap (surPoints w h point)
-        сalCell point@(x, y) mineMap = changeCell point mineMap (incVal (mineMap !! x !! y))
+        сalcCells point mineMap = foldr сalcCell mineMap (surPoints w h point)
+        сalcCell point@(x, y) mineMap = changeCell point mineMap (incVal (mineMap !! x !! y))
         emptyMap = createEmptyMap w h
         createEmptyMap w h = replicate w $ replicate h $ (Cell 0)
 
 
 -- incrementing cell value
 incVal :: (CellState Int) -> (CellState Int)
-incVal (Cell i) = (Cell (i+1))
+incVal (Cell i) = (Cell (succ i))
 incVal Mine = Mine
 
 
@@ -86,8 +86,14 @@ showTup (a, b) = "(" ++ (show a) ++ "," ++ (show b) ++ ")"
 
 
 -- check the board on the opening of all cells 
-checkBoard :: ExploredBoard -> Bool
-checkBoard b = False
+checkBoard :: ExploredBoard -> GameMap -> Bool
+checkBoard explBoard gameMap = all isOpen coords
+                        where
+                          coords = [(i,j) | i <- [0..(width-1)], j <-  [0..(height-1)]]
+                          isOpen coord = 
+                            (isCell (getCell coord explBoard)) || (getCell coord gameMap == Mine)
+                          isCell (Cell _) = True
+                          isCell _ = False
 
 -- открытие клетки/клеток на вход подается пара (x, y) на выход возвращается доска 
 openCell :: GameMap -> Types.Point -> ExploredBoard -> ExploredBoard
@@ -243,10 +249,10 @@ setFlag (x, y) game = Game
                     where b = (board game)
 
 check :: Game -> Game
-check game = case checkBoard (board game) of 
+check game = case checkBoard (board game) (closeBoard game) of 
               True -> Game 
                       { closeBoard = (closeBoard game)
-                      , board = (closeBoard game)
+                      , board = (board game)
                       , label = "YOU WIN!!!"
                       , imgs  = (imgs game)
                       , win   = True
