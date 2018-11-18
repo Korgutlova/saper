@@ -3,7 +3,7 @@ module Types where
 import Data.Char
 import Graphics.Gloss
 
-data CellState a = Mine | NotOpen | MineFlag | Cell a deriving(Show)
+data CellState a = Mine | NotOpen | MineFlag | Cell a deriving(Show, Eq)
 
 type Point          = (Int, Int)
 type GameMap        = [[CellState Int]]

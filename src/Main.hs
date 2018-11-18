@@ -9,7 +9,7 @@ import System.Random
 import Control.Monad
 import Types
 
-minesN = 20 -- amount mines
+minesN = 10 -- amount mines
 
 main :: IO ()
 main = do
@@ -89,15 +89,32 @@ showTup (a, b) = "(" ++ (show a) ++ "," ++ (show b) ++ ")"
 checkBoard :: ExploredBoard -> Bool
 checkBoard b = False
 
--- октрытие клетки/клеток на вход подается пара (x, y) на выход возвращается доска 
-openCell :: Types.Point -> GameMap -> ExploredBoard -> ExploredBoard
-openCell coord gameMap explBoard = explBoard
--- openCell coord gameMap explBoard = changeCell coord explBoard (Cell 0)
+-- открытие клетки/клеток на вход подается пара (x, y) на выход возвращается доска 
+openCell :: GameMap -> Types.Point -> ExploredBoard -> ExploredBoard
+openCell gameMap coord explBoard = case cell of 
+                        (Cell 0) -> foldr (explore gameMap) newExplBoard (surPoints 10 10 coord) 
+                        otherwise -> newExplBoard
+                        where
+                          cell = getCell coord gameMap
+                          newExplBoard = changeCell coord explBoard cell
+
+
+explore :: GameMap -> Types.Point -> ExploredBoard -> ExploredBoard
+explore gameMap coord explBoard = case cell of
+                        NotOpen -> openCell gameMap coord explBoard
+                        otherwise -> explBoard
+                        where
+                          cell = getCell coord explBoard
+
 
 checkMine :: Types.Point -> GameMap -> Bool
-checkMine coord gameMap = case (gameMap !! (fst coord) !! (snd coord)) of 
+checkMine coord gameMap = case (getCell coord gameMap) of 
                         Mine -> True
                         otherwise -> False
+
+
+getCell :: Types.Point -> GameMap -> (CellState Int)
+getCell coord gameMap = gameMap !! (fst coord) !! (snd coord)
 
 loadImages :: IO Images
 loadImages = Images
@@ -204,7 +221,7 @@ openCellGUI (x, y) game = case checkMine (x, y) (closeBoard game) of
                         }
                     False -> Game 
                         { board = case b !! x !! y of 
-                                NotOpen   -> openCell (x, y) (closeBoard game) b           
+                                NotOpen   -> openCell (closeBoard game) (x, y) b           
                                 otherwise -> b
                           , closeBoard = (closeBoard game)
                           , label = (label game)
