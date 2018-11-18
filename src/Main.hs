@@ -217,24 +217,26 @@ mouseToCell (x, y) = case (i > -1 && i < height && j > -1 && j < height) of
             j = floor (fromIntegral height - y + fromIntegral initY + delta) `div` size 
 
 openCellGUI :: (Int, Int) -> Game -> Game
-openCellGUI (x, y) game = case checkMine (x, y) (closeBoard game) of
-                    True -> Game
-                        {  board = (closeBoard game)
-                         , closeBoard = (closeBoard game)
-                         , label = "GAME OVER!!"
-                         , imgs  = (imgs game)
-                         , win   = True
-                        }
-                    False -> Game 
-                        { board = case b !! x !! y of 
-                                NotOpen   -> openCell (closeBoard game) (x, y) b           
-                                otherwise -> b
-                          , closeBoard = (closeBoard game)
-                          , label = (label game)
-                          , imgs  = (imgs game)
-                          , win   = (win game)
-                        }
-                where b = (board game)
+openCellGUI (x, y) game = case elem of  
+                    NotOpen -> case checkMine (x, y) (closeBoard game) of
+                                    True -> Game
+                                        {  board = (closeBoard game)
+                                         , closeBoard = (closeBoard game)
+                                         , label = "GAME OVER!!"
+                                         , imgs  = (imgs game)
+                                         , win   = True
+                                        }
+                                    False -> Game 
+                                        { board = openCell (closeBoard game) (x, y) b           
+                                         , closeBoard = (closeBoard game)
+                                         , label = (label game)
+                                         , imgs  = (imgs game)
+                                         , win   = (win game)
+                                        }
+                    otherwise -> game
+                where 
+                    elem = b !! x !! y
+                    b = (board game)
 setFlag :: (Int, Int) -> Game -> Game
 setFlag (x, y) game = Game 
                     { board = case b !! x !! y of 
@@ -249,13 +251,15 @@ setFlag (x, y) game = Game
                     where b = (board game)
 
 check :: Game -> Game
-check game = case checkBoard (board game) (closeBoard game) of 
-              True -> Game 
-                      { closeBoard = (closeBoard game)
-                      , board = (board game)
-                      , label = "YOU WIN!!!"
-                      , imgs  = (imgs game)
-                      , win   = True
-                      }
-              False -> game
+check game = case (win game) of 
+            False -> case checkBoard (board game) (closeBoard game) of 
+                    True -> Game 
+                          { closeBoard = (closeBoard game)
+                          , board = (board game)
+                          , label = "YOU WIN!!!"
+                          , imgs  = (imgs game)
+                          , win   = True
+                          }
+                    False -> game
+            True -> game
               
