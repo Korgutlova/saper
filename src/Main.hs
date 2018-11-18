@@ -92,7 +92,7 @@ checkBoard b = False
 -- открытие клетки/клеток на вход подается пара (x, y) на выход возвращается доска 
 openCell :: GameMap -> Types.Point -> ExploredBoard -> ExploredBoard
 openCell gameMap coord explBoard = case cell of 
-                        (Cell 0) -> foldr (explore gameMap) newExplBoard (surPoints 10 10 coord) 
+                        (Cell 0) -> foldr (explore gameMap) newExplBoard (surPoints width height coord) 
                         otherwise -> newExplBoard
                         where
                           cell = getCell coord gameMap
