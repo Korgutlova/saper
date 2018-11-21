@@ -1,23 +1,25 @@
 module Main where
 
+import Types
+
 import Data.Char
+import Data.List
 import Data.Foldable
+import System.Random
+import Control.Monad
+
 import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Interact as G
 import Graphics.Gloss.Juicy
-import System.Random
-import Control.Monad
-import Types
 
-minesN = 10 -- amount mines
+
+minesN = 15 -- amount mines
 
 main :: IO ()
 main = do
-        -- putStrLn "This is saper game!"
         g <- getStdGen
         let mines = genMinePoints width height minesN g
-        -- putStrLn ("Mines:")
-        mapM_ (putStrLn . showTup) mines
+        -- mapM_ (putStrLn . showTup) mines
         let gameMap = createGameMap width height mines
         -- mapM_ (putStrLn . unlines) $ map (map show) gameMap
         world <- createGame gameMap <$> loadImages
@@ -33,7 +35,7 @@ instance (Random x, Random y) => Random (x, y) where
 
 -- generate mines locations
 genMinePoints :: RandomGen g => Int -> Int -> Int -> g -> [Types.Point]
-genMinePoints w h n g = take n $ randomRs ((0,0),(w-1,h-1)) $ g :: [(Int,Int)]
+genMinePoints w h n g = nub $ take n $ randomRs ((0,0),(w-1,h-1)) $ g :: [(Int,Int)]
 
 -- generate game map
 createGameMap :: Int -> Int -> [Types.Point] -> GameMap
@@ -80,7 +82,7 @@ changeCell (x, y) map newElem =
 replace :: Int -> [a] -> a -> [a]
 replace x map newElem = take x map ++ newElem : drop (x+1) map
 
--- for debug
+-- print tuples
 showTup :: (Show a, Show b) => (a, b) -> String
 showTup (a, b) = "(" ++ (show a) ++ "," ++ (show b) ++ ")"
 
@@ -95,7 +97,7 @@ checkBoard explBoard gameMap = all isOpen coords
                           isCell (Cell _) = True
                           isCell _ = False
 
--- открытие клетки/клеток на вход подается пара (x, y) на выход возвращается доска 
+-- open closed cell in explored board
 openCell :: GameMap -> Types.Point -> ExploredBoard -> ExploredBoard
 openCell gameMap coord explBoard = case cell of 
                         (Cell 0) -> foldr (explore gameMap) newExplBoard (surPoints width height coord) 
@@ -105,6 +107,7 @@ openCell gameMap coord explBoard = case cell of
                           newExplBoard = changeCell coord explBoard cell
 
 
+-- exploring is cell open or not
 explore :: GameMap -> Types.Point -> ExploredBoard -> ExploredBoard
 explore gameMap coord explBoard = case cell of
                         NotOpen -> openCell gameMap coord explBoard
@@ -121,6 +124,7 @@ checkMine coord gameMap = case (getCell coord gameMap) of
 
 getCell :: Types.Point -> GameMap -> (CellState Int)
 getCell coord gameMap = gameMap !! (fst coord) !! (snd coord)
+
 
 loadImages :: IO Images
 loadImages = Images
