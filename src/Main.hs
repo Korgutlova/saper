@@ -17,10 +17,10 @@ minesN = 15 -- amount mines
 
 main :: IO ()
 main = do
-        g <- getStdGen
-        let mines = genMinePoints width height minesN g
+        gen <- getStdGen
+        let mines = genMinePoints minesN gen
         -- mapM_ (putStrLn . showTup) mines
-        let gameMap = createGameMap width height mines
+        let gameMap = createGameMap mines
         -- mapM_ (putStrLn . unlines) $ map (map show) gameMap
         world <- createGame gameMap <$> loadImages
         play FullScreen blue 100 world draw handleEvent handleTime
@@ -34,19 +34,19 @@ instance (Random x, Random y) => Random (x, y) where
         in ((x, y), gen3)
 
 -- generate mines locations
-genMinePoints :: RandomGen g => Int -> Int -> Int -> g -> [Types.Point]
-genMinePoints w h n g = nub $ take n $ randomRs ((0,0),(w-1,h-1)) $ g :: [(Int,Int)]
+genMinePoints :: RandomGen gen => Int -> gen -> [Types.Point]
+genMinePoints n gen = nub $ take n $ randomRs ((0,0),(width-1,height-1)) $ gen :: [(Int,Int)]
 
 -- generate game map
-createGameMap :: Int -> Int -> [Types.Point] -> GameMap
-createGameMap w h mines = foldr placeMine emptyMap mines
+createGameMap :: [Types.Point] -> GameMap
+createGameMap mines = foldr placeMine emptyMap mines
     where
         placeMine point mineMap = сalcCells point (addMine point mineMap)
         addMine point mineMap = changeCell point mineMap (Mine)
-        сalcCells point mineMap = foldr сalcCell mineMap (surPoints w h point)
+        сalcCells point mineMap = foldr сalcCell mineMap (surPoints point)
         сalcCell point@(x, y) mineMap = changeCell point mineMap (incVal (mineMap !! x !! y))
-        emptyMap = createEmptyMap w h
-        createEmptyMap w h = replicate w $ replicate h $ (Cell 0)
+        emptyMap = createEmptyMap
+        createEmptyMap = replicate width $ replicate height $ (Cell 0)
 
 
 -- incrementing cell value
@@ -56,21 +56,21 @@ incVal Mine = Mine
 
 
 -- return surriunding points
-surPoints :: Int -> Int -> Types.Point -> [Types.Point]
-surPoints w h (x, y) =
-    filter (inBounds w h) [(x-1, y-1), (x, y-1), (x+1, y-1),
-                           (x-1, y),             (x+1, y),
-                           (x-1, y+1), (x, y+1), (x+1, y+1)]
+surPoints :: Types.Point -> [Types.Point]
+surPoints (x, y) =
+    filter inBounds [(x-1, y-1), (x, y-1), (x+1, y-1),
+                     (x-1, y),             (x+1, y),
+                     (x-1, y+1), (x, y+1), (x+1, y+1)]
 
 
 -- return is point in map bounds
-inBounds :: Int -> Int -> Types.Point -> Bool
-inBounds w h (x, y)
-    | x < 0     = False
-    | x >= w    = False
-    | y < 0     = False
-    | y >= h    = False
-    | otherwise = True
+inBounds :: Types.Point -> Bool
+inBounds (x, y)
+    | x < 0         = False
+    | x >= width    = False
+    | y < 0         = False
+    | y >= height   = False
+    | otherwise     = True
 
 
 -- functions for change elem in 2d array
@@ -100,7 +100,7 @@ checkBoard explBoard gameMap = all isOpen coords
 -- open closed cell in explored board
 openCell :: GameMap -> Types.Point -> ExploredBoard -> ExploredBoard
 openCell gameMap coord explBoard = case cell of 
-                        (Cell 0) -> foldr (explore gameMap) newExplBoard (surPoints width height coord) 
+                        (Cell 0) -> foldr (explore gameMap) newExplBoard (surPoints coord) 
                         otherwise -> newExplBoard
                         where
                           cell = getCell coord gameMap
@@ -226,7 +226,7 @@ openCellGUI (x, y) game = case elem of
                                     True -> Game
                                         {  board = (closeBoard game)
                                          , closeBoard = (closeBoard game)
-                                         , label = "GAME OVER!!"
+                                         , label = "GAME OVER!!!"
                                          , imgs  = (imgs game)
                                          , win   = True
                                         }
