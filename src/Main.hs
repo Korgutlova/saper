@@ -23,7 +23,8 @@ main = do
         let gameMap = createGameMap mines
         -- mapM_ (putStrLn . unlines) $ map (map show) gameMap
         world <- createGame gameMap <$> loadImages
-        play FullScreen blue 100 world draw handleEvent handleTime
+        -- play FullScreen blue 100 world draw handleEvent handleTime
+        play (InWindow "Saper game" (800, 700) (300, 100)) black 100 world draw handleEvent handleTime
 
 
 -- random for tuples
@@ -148,8 +149,8 @@ draw game = pictures
     , drawLabel (label game)  
     , drawBoard x y s txt c game]
     where
-        drawLabel label = translate (x) (y + 50) 
-                                        (scale txt txt (color black $ text label))
+        drawLabel label = translate (x - 50) (y + 50) 
+                                        (scale 0.4 0.4 (color white $ text label))
         c   = fromIntegral size
         s   = 0.096
         txt = 0.3
@@ -226,7 +227,7 @@ openCellGUI (x, y) game = case elem of
                                     True -> Game
                                         {  board = (closeBoard game)
                                          , closeBoard = (closeBoard game)
-                                         , label = "GAME OVER!!!"
+                                         , label = "  GAME OVER!!!  "
                                          , imgs  = (imgs game)
                                          , win   = True
                                         }
@@ -260,7 +261,7 @@ check game = case (win game) of
                     True -> Game 
                           { closeBoard = (closeBoard game)
                           , board = (board game)
-                          , label = "YOU WIN!!!"
+                          , label = "  YOU WIN!!!  "
                           , imgs  = (imgs game)
                           , win   = True
                           }
