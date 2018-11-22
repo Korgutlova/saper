@@ -13,13 +13,13 @@ import Graphics.Gloss.Interface.IO.Interact as G
 import Graphics.Gloss.Juicy
 
 
-minesN = 15 -- amount mines
+minesN = 25 -- amount mines
 
 main :: IO ()
 main = do
         gen <- getStdGen
         let mines = genMinePoints minesN gen
-        -- mapM_ (putStrLn . showTup) mines
+        mapM_ (putStrLn . showTup) mines
         let gameMap = createGameMap mines
         -- mapM_ (putStrLn . unlines) $ map (map show) gameMap
         world <- createGame gameMap <$> loadImages
@@ -36,7 +36,7 @@ instance (Random x, Random y) => Random (x, y) where
 
 -- generate mines locations
 genMinePoints :: RandomGen gen => Int -> gen -> [Types.Point]
-genMinePoints n gen = nub $ take n $ randomRs ((0,0),(width-1,height-1)) $ gen :: [(Int,Int)]
+genMinePoints n gen = take n $ nub $ take (n*2) $ randomRs ((0,0),(width-1,height-1)) $ gen :: [(Int,Int)]
 
 -- generate game map
 createGameMap :: [Types.Point] -> GameMap
