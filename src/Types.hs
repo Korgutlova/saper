@@ -35,7 +35,7 @@ height = 10 -- height board
 
 
 initX :: Int
-initX = -270
+initX = -225
 
 initY :: Int
 initY = 220
