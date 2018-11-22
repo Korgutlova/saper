@@ -5,17 +5,18 @@ import Graphics.Gloss
 
 data CellState a = Mine | NotOpen | MineFlag | Cell a deriving(Show, Eq)
 
+data StateGame      = Start | Play | Finish            
 type Point          = (Int, Int)
 type GameMap        = [[CellState Int]]
 type ExploredBoard  = [[CellState Int]]
 
 data Game = Game 
-            { closeBoard :: GameMap
-            , board :: ExploredBoard
-            , label :: String
-            , imgs  :: Images
-            , win   :: Bool
-            , numMine :: Int
+            { closeBoard  :: GameMap
+            , board       :: ExploredBoard
+            , label       :: String
+            , imgs        :: Images
+            , state       :: StateGame
+            , numMine     :: Int
             }
 
 data Images = Images 

@@ -9,7 +9,7 @@ import System.Random
 import Control.Monad
 
 import Graphics.Gloss
-import Graphics.Gloss.Interface.IO.Interact as G
+import Graphics.Gloss.Interface.IO.Game as G
 import Graphics.Gloss.Juicy
 
 
@@ -17,14 +17,14 @@ minesN = 25 -- amount mines
 
 main :: IO ()
 main = do
-        gen <- getStdGen
-        let mines = genMinePoints minesN gen
+        -- gen <- getStdGen
+        -- let mines = genMinePoints minesN gen
         -- mapM_ (putStrLn . showTup) mines
-        let gameMap = createGameMap mines
+        -- let gameMap = createGameMap mines
         -- mapM_ (putStrLn . unlines) $ map (map show) gameMap
-        world <- createGame gameMap <$> loadImages
+        world <- createGame <$> loadImages
         -- play FullScreen blue 100 world draw handleEvent handleTime
-        play (InWindow "Saper game" (800, 700) (300, 100)) black 100 world draw handleEvent handleTime
+        playIO (InWindow "Saper game" (800, 700) (300, 100)) black 100 world draw handleEvent handleTime
 
 
 -- random for tuples
@@ -126,6 +126,8 @@ checkMine coord gameMap = case (getCell coord gameMap) of
 getCell :: Types.Point -> GameMap -> (CellState Int)
 getCell coord gameMap = gameMap !! (fst coord) !! (snd coord)
 
+-- initWorld :: IO Game
+-- initWorld =  createGame <$> loadImages
 
 loadImages :: IO Images
 loadImages = Images
@@ -134,30 +136,35 @@ loadImages = Images
   <*> fmap fold (loadJuicyPNG "img/block.png")
   <*> fmap fold (loadJuicyPNG "img/open.png")
 
-createGame :: GameMap -> Images -> Game
-createGame gamemap images = Game
+createGame ::Images -> Game
+createGame images = Game
     { board = replicate width $ replicate height $ (NotOpen) 
-    , closeBoard = gamemap
-    , label = "This is saper game!"  
+    , closeBoard = replicate width $ replicate height $ (NotOpen)
+    , label = "Choose number of mines"  
     , imgs  = images
-    , win = False
-    , numMine = minesN
+    , state = Start
+    , numMine = 0
     }
 
-draw :: Game -> Picture
-draw game = pictures 
-    [ drawEmpty x y s c (open (imgs game))
-    , drawLabel (label game)  
-    , drawBoard x y s txt c game]
-    where
-        drawLabel label = translate (x - 50) (y + 50) 
-                                        (scale 0.4 0.4 (color white $ text 
-                                            (label ++ "  " ++ show((numMine game)))))
-        c   = fromIntegral size
-        s   = 0.096
-        txt = 0.3
-        x   = fromIntegral initX
-        y   = fromIntegral initY
+draw :: Game -> IO Picture
+draw game = do 
+                let c   = fromIntegral size
+                let s   = 0.096
+                let txt = 0.3
+                let x   = fromIntegral initX
+                let y   = fromIntegral initY
+                let drawLabel label = translate (x - 50) (y + 50) 
+                                                        (scale 0.4 0.4 (color white $ text 
+                                                            (label)))
+                case (state game) of
+                -- putStrLn "1"
+                    Start -> return (pictures [drawLabel (label game)])
+                    otherwise -> return (pictures 
+                                                [ drawEmpty x y s c (open (imgs game))
+                                                , drawLabel ((label game) ++ "  " ++ show((numMine game)))
+                                                , drawBoard x y s txt c game
+                                                ])
+                    
 
 generateArray :: (Float, Float) -> Float -> Float  -> [(Float, Float)]
 generateArray (0, y) k h = case k of 
@@ -201,19 +208,36 @@ drawBoard x y s txt c game = pictures (b)
 getElem :: ExploredBoard -> Float -> Float -> CellState Int
 getElem cust_map i j = cust_map !! (round i) !! (round j)
 
-handleEvent :: Event -> Game -> Game
-handleEvent (EventKey (MouseButton k) Down _ mouse) game = case (win game) of 
-                                  False -> case value of 
-                                          (-1, -1) -> game
+handleEvent :: Event -> Game -> IO Game
+handleEvent (EventKey (MouseButton k) Down _ mouse) game = case (state game) of 
+                                Start -> getGame minesN game
+                                Play -> case value of 
+                                          (-1, -1) -> castIO game
                                           otherwise -> case k of 
-                                                      LeftButton -> check (openCellGUI value game)
-                                                      RightButton -> check (setFlag value game)
+                                                      LeftButton -> castIO (check (openCellGUI value game))
+                                                      RightButton -> castIO (check (setFlag value game))
                                           where value = mouseToCell mouse
-                                  True -> game
-handleEvent _ w = w
+                                Finish -> castIO game
 
-handleTime :: Float -> Game -> Game
-handleTime _ w = w
+handleEvent _ w = castIO w
+
+getGame :: Int -> Game -> IO Game
+getGame n game = do 
+            gen <- getStdGen
+            let mines = genMinePoints n gen
+            let gameMap = createGameMap mines
+            return Game 
+                    { board = (board game)           
+                    , closeBoard = gameMap
+                    , label = "This is saper game!"
+                    , imgs  = (imgs game)
+                    , state   = Play
+                    , numMine = 10
+                    }
+
+
+handleTime :: Float ->  Game -> IO Game
+handleTime _ w = castIO w
 
 mouseToCell :: G.Point  -> (Int, Int)
 mouseToCell (x, y) = case (i > -1 && i < height && j > -1 && j < height) of 
@@ -231,7 +255,7 @@ openCellGUI (x, y) game = case elem of
                                          , closeBoard = (closeBoard game)
                                          , label = "  GAME OVER!!!  "
                                          , imgs  = (imgs game)
-                                         , win   = True
+                                         , state   = Finish
                                          , numMine = 0
                                         }
                                     False -> Game 
@@ -239,7 +263,7 @@ openCellGUI (x, y) game = case elem of
                                          , closeBoard = (closeBoard game)
                                          , label = (label game)
                                          , imgs  = (imgs game)
-                                         , win   = (win game)
+                                         , state   = (state game)
                                          , numMine = (numMine game)
                                         }
                     otherwise -> game
@@ -257,7 +281,7 @@ setFlag (x, y) game = Game
                     , closeBoard = (closeBoard game)
                     , label = (label game)
                     , imgs  = (imgs game)
-                    , win   = (win game)
+                    , state   = (state game)
                     , numMine = case elem of 
                               NotOpen -> case n == 0 of
                                         True -> n  
@@ -271,16 +295,19 @@ setFlag (x, y) game = Game
                         n = (numMine game)
 
 check :: Game -> Game
-check game = case (win game) of 
-            False -> case checkBoard (board game) (closeBoard game) of 
+check game = case (state game) of 
+            Play -> case checkBoard (board game) (closeBoard game) of 
                     True -> Game 
                           { closeBoard = (closeBoard game)
                           , board = (board game)
                           , label = "  YOU WIN!!!  "
                           , imgs  = (imgs game)
-                          , win   = True
+                          , state   = Finish
                           , numMine = 0
                           }
                     False -> game
-            True -> game
-              
+            otherwise -> game
+        
+castIO :: Game -> IO Game
+castIO game = do 
+                return game
