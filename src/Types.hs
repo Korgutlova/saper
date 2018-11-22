@@ -24,6 +24,9 @@ data Images = Images
             , flag  :: Picture 
             , block :: Picture
             , open  :: Picture
+            , plus  :: Picture
+            , minus :: Picture
+            , generate :: Picture
             }
 
 size :: Int

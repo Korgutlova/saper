@@ -13,7 +13,7 @@ import Graphics.Gloss.Interface.IO.Game as G
 import Graphics.Gloss.Juicy
 
 
-minesN = 25 -- amount mines
+minesN = 15 -- amount mines
 
 main :: IO ()
 main = do
@@ -135,6 +135,10 @@ loadImages = Images
   <*> fmap fold (loadJuicyPNG "img/flag.png")
   <*> fmap fold (loadJuicyPNG "img/block.png")
   <*> fmap fold (loadJuicyPNG "img/open.png")
+  <*> fmap fold (loadJuicyPNG "img/minus.png")
+  <*> fmap fold (loadJuicyPNG "img/plus.png")
+  <*> fmap fold (loadJuicyPNG "img/generate.png")
+
 
 createGame ::Images -> Game
 createGame images = Game
@@ -157,8 +161,15 @@ draw game = do
                                                         (scale 0.4 0.4 (color white $ text 
                                                             (label)))
                 case (state game) of
-                -- putStrLn "1"
-                    Start -> return (pictures [drawLabel (label game)])
+                    Start -> return (pictures [drawLabel (label game)
+                                               , translate (x + 110) (y - 130) 
+                                                        (scale 0.4 0.4 (color white $ text 
+                                                            (show (numMine game))))
+                                               , translate (x + 250) (y - 100) (scale s s (minus (imgs game)))
+                                               , translate (x + 250) (y - 160) (scale s s (plus (imgs game)))
+                                               , translate (x + 150) (y - 210) (scale 0.2 0.17 (generate (imgs game)))
+                                               ])
+
                     otherwise -> return (pictures 
                                                 [ drawEmpty x y s c (open (imgs game))
                                                 , drawLabel ((label game) ++ "  " ++ show((numMine game)))
@@ -209,8 +220,12 @@ getElem :: ExploredBoard -> Float -> Float -> CellState Int
 getElem cust_map i j = cust_map !! (round i) !! (round j)
 
 handleEvent :: Event -> Game -> IO Game
+handleEvent (EventKey (Char c) Up _ _) game = castIO (changeMine c game)
+
 handleEvent (EventKey (MouseButton k) Down _ mouse) game = case (state game) of 
-                                Start -> getGame minesN game
+                                Start -> case k of 
+                                            LeftButton -> checkPushButton mouse game
+                                            otherwise -> castIO game
                                 Play -> case value of 
                                           (-1, -1) -> castIO game
                                           otherwise -> case k of 
@@ -221,10 +236,35 @@ handleEvent (EventKey (MouseButton k) Down _ mouse) game = case (state game) of
 
 handleEvent _ w = castIO w
 
-getGame :: Int -> Game -> IO Game
-getGame n game = do 
+checkPushButton :: G.Point -> Game -> IO Game
+checkPushButton (x, y) game     | fromIntegral initX + 225 < x && fromIntegral initX + 275 > x &&
+                                  fromIntegral initY - 75 > y && fromIntegral initY - 125 < y = castIO (changeMine '+' game)
+                                | fromIntegral initX + 225 < x && fromIntegral initX + 275 > x &&
+                                  fromIntegral initY - 135 > y && fromIntegral initY - 185 < y = castIO (changeMine '-' game) 
+                                | fromIntegral initX + 115 < x && fromIntegral initX + 215 > x &&
+                                  fromIntegral initY - 185 > y && fromIntegral initY - 235 < y = getGame game
+                                | otherwise = castIO game  
+
+changeMine :: Char -> Game -> Game
+changeMine c game = Game 
+                     { board = (board game)
+                     , closeBoard = (closeBoard game)
+                     , label = (label game)
+                     , imgs  = (imgs game)
+                     , state   = (state game)
+                     , numMine = case c of 
+                                    '-' -> case n == 0 of 
+                                                True -> n
+                                                False -> n - 1
+                                    '+' -> n + 1
+                    }
+                  where 
+                     n = numMine game 
+
+getGame :: Game -> IO Game
+getGame game = do 
             gen <- getStdGen
-            let mines = genMinePoints n gen
+            let mines = genMinePoints (numMine game) gen
             let gameMap = createGameMap mines
             return Game 
                     { board = (board game)           
@@ -232,7 +272,7 @@ getGame n game = do
                     , label = "This is saper game!"
                     , imgs  = (imgs game)
                     , state   = Play
-                    , numMine = 10
+                    , numMine = (numMine game)
                     }
 
 
