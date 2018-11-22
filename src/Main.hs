@@ -19,7 +19,7 @@ main :: IO ()
 main = do
         gen <- getStdGen
         let mines = genMinePoints minesN gen
-        mapM_ (putStrLn . showTup) mines
+        -- mapM_ (putStrLn . showTup) mines
         let gameMap = createGameMap mines
         -- mapM_ (putStrLn . unlines) $ map (map show) gameMap
         world <- createGame gameMap <$> loadImages
