@@ -137,10 +137,11 @@ loadImages = Images
 createGame :: GameMap -> Images -> Game
 createGame gamemap images = Game
     { board = replicate width $ replicate height $ (NotOpen) 
-    , closeBoard =gamemap
-    , label = "This is saper game!" 
+    , closeBoard = gamemap
+    , label = "This is saper game!"  
     , imgs  = images
     , win = False
+    , numMine = minesN
     }
 
 draw :: Game -> Picture
@@ -150,7 +151,8 @@ draw game = pictures
     , drawBoard x y s txt c game]
     where
         drawLabel label = translate (x - 50) (y + 50) 
-                                        (scale 0.4 0.4 (color white $ text label))
+                                        (scale 0.4 0.4 (color white $ text 
+                                            (label ++ "  " ++ show((numMine game)))))
         c   = fromIntegral size
         s   = 0.096
         txt = 0.3
@@ -230,6 +232,7 @@ openCellGUI (x, y) game = case elem of
                                          , label = "  GAME OVER!!!  "
                                          , imgs  = (imgs game)
                                          , win   = True
+                                         , numMine = 0
                                         }
                                     False -> Game 
                                         { board = openCell (closeBoard game) (x, y) b           
@@ -237,6 +240,7 @@ openCellGUI (x, y) game = case elem of
                                          , label = (label game)
                                          , imgs  = (imgs game)
                                          , win   = (win game)
+                                         , numMine = (numMine game)
                                         }
                     otherwise -> game
                 where 
@@ -244,16 +248,27 @@ openCellGUI (x, y) game = case elem of
                     b = (board game)
 setFlag :: (Int, Int) -> Game -> Game
 setFlag (x, y) game = Game 
-                    { board = case b !! x !! y of 
-                              NotOpen -> changeCell (x, y)  b (MineFlag)
+                    { board = case elem of 
+                              NotOpen ->  case n == 0 of 
+                                        False -> changeCell (x, y)  b (MineFlag)
+                                        True -> b
                               MineFlag -> changeCell (x, y)  b (NotOpen)
                               otherwise -> b
                     , closeBoard = (closeBoard game)
                     , label = (label game)
                     , imgs  = (imgs game)
                     , win   = (win game)
+                    , numMine = case elem of 
+                              NotOpen -> case n == 0 of
+                                        True -> n  
+                                        False -> n - 1
+                              MineFlag -> n + 1
+                              otherwise -> n
                     }
-                    where b = (board game)
+                    where 
+                        b = (board game)
+                        elem = b !! x !! y
+                        n = (numMine game)
 
 check :: Game -> Game
 check game = case (win game) of 
@@ -264,6 +279,7 @@ check game = case (win game) of
                           , label = "  YOU WIN!!!  "
                           , imgs  = (imgs game)
                           , win   = True
+                          , numMine = 0
                           }
                     False -> game
             True -> game

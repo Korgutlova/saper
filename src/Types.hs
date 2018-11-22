@@ -15,6 +15,7 @@ data Game = Game
             , label :: String
             , imgs  :: Images
             , win   :: Bool
+            , numMine :: Int
             }
 
 data Images = Images 
