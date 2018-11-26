@@ -27,6 +27,7 @@ data Images = Images
             , plus  :: Picture
             , minus :: Picture
             , generate :: Picture
+            , restart :: Picture
             }
 
 size :: Int

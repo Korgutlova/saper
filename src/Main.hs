@@ -138,9 +138,11 @@ loadImages = Images
   <*> fmap fold (loadJuicyPNG "img/minus.png")
   <*> fmap fold (loadJuicyPNG "img/plus.png")
   <*> fmap fold (loadJuicyPNG "img/generate.png")
+  <*> fmap fold (loadJuicyPNG "img/restart.png")
 
 
-createGame ::Images -> Game
+
+createGame :: Images -> Game
 createGame images = Game
     { board = replicate width $ replicate height $ (NotOpen) 
     , closeBoard = replicate width $ replicate height $ (NotOpen)
@@ -155,15 +157,16 @@ draw game = do
                 let c   = fromIntegral size
                 let s   = 0.096
                 let txt = 0.3
+                let numb = 0.4
                 let x   = fromIntegral initX
                 let y   = fromIntegral initY
                 let drawLabel label = translate (x - 50) (y + 50) 
-                                                        (scale 0.4 0.4 (color white $ text 
+                                                        (scale numb numb (color white $ text 
                                                             (label)))
                 case (state game) of
                     Start -> return (pictures [drawLabel (label game)
                                                , translate (x + 110) (y - 130) 
-                                                        (scale 0.4 0.4 (color white $ text 
+                                                        (scale numb numb (color white $ text 
                                                             (show (numMine game))))
                                                , translate (x + 250) (y - 100) (scale s s (minus (imgs game)))
                                                , translate (x + 250) (y - 160) (scale s s (plus (imgs game)))
@@ -174,6 +177,8 @@ draw game = do
                                                 [ drawEmpty x y s c (open (imgs game))
                                                 , drawLabel ((label game) ++ "  " ++ show((numMine game)))
                                                 , drawBoard x y s txt c game
+                                                , translate (x + 25) (y -  fromIntegral height * fromIntegral size) 
+                                                                            (scale 0.2 0.17 (restart (imgs game)))
                                                 ])
                     
 
@@ -227,12 +232,15 @@ handleEvent (EventKey (MouseButton k) Down _ mouse) game = case (state game) of
                                             LeftButton -> checkPushButton mouse game
                                             otherwise -> castIO game
                                 Play -> case value of 
-                                          (-1, -1) -> castIO game
+                                          (-1, 0) -> castIO game
+                                          (0, -1) -> castIO (createGame (imgs game))
                                           otherwise -> case k of 
                                                       LeftButton -> castIO (check (openCellGUI value game))
                                                       RightButton -> castIO (check (setFlag value game))
-                                          where value = mouseToCell mouse
-                                Finish -> castIO game
+                                Finish -> case value of 
+                                            (0, -1) -> castIO (createGame (imgs game))
+                                            otherwise -> castIO game
+                                where value = mouseToCell mouse
 
 handleEvent _ w = castIO w
 
@@ -282,10 +290,14 @@ handleTime _ w = castIO w
 mouseToCell :: G.Point  -> (Int, Int)
 mouseToCell (x, y) = case (i > -1 && i < height && j > -1 && j < height) of 
                           True -> (j, i)
-                          False -> (-1, -1)
+                          False -> case (custX - 25 < x && custX + 120 > x && custY + 25 > y && custY - 5 < y) of  
+                                    True -> (0, -1)
+                                    False -> (-1, 0)
         where   
-            i = floor (x - fromIntegral initX + delta) `div` size          
-            j = floor (fromIntegral height - y + fromIntegral initY + delta) `div` size 
+            i = floor (x - custX + delta) `div` size          
+            j = floor (fromIntegral height - y + fromIntegral initY + delta) `div` size
+            custX = fromIntegral initX
+            custY = fromIntegral initY - fromIntegral height * fromIntegral size 
 
 openCellGUI :: (Int, Int) -> Game -> Game
 openCellGUI (x, y) game = case elem of  
