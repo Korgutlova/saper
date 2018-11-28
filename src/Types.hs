@@ -2,6 +2,7 @@ module Types where
 
 import Data.Char
 import Graphics.Gloss
+import Data.Time.Clock
 
 data CellState a = Mine | NotOpen | MineFlag | Cell a deriving(Show, Eq)
 
@@ -10,6 +11,7 @@ type Point          = (Int, Int)
 type GameMap        = [[CellState Int]]
 type ExploredBoard  = [[CellState Int]]
 
+
 data Game = Game 
             { closeBoard  :: GameMap
             , board       :: ExploredBoard
@@ -17,6 +19,8 @@ data Game = Game
             , imgs        :: Images
             , state       :: StateGame
             , numMine     :: Int
+            , startTime   :: DiffTime 
+            , timer       :: DiffTime
             }
 
 data Images = Images 

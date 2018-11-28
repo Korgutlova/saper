@@ -12,19 +12,16 @@ import Graphics.Gloss
 import Graphics.Gloss.Interface.IO.Game as G
 import Graphics.Gloss.Juicy
 
+import Data.Time.Clock
+import Data.Time.Format
+
 
 minesN = 15 -- amount mines
 
 main :: IO ()
 main = do
-        -- gen <- getStdGen
-        -- let mines = genMinePoints minesN gen
-        -- mapM_ (putStrLn . showTup) mines
-        -- let gameMap = createGameMap mines
-        -- mapM_ (putStrLn . unlines) $ map (map show) gameMap
-        world <- createGame <$> loadImages
-        -- play FullScreen blue 100 world draw handleEvent handleTime
-        playIO (InWindow "Saper game" (800, 700) (300, 100)) black 100 world draw handleEvent handleTime
+        world <- createGame <$> loadImages 
+        playIO (InWindow "Sapper game" (800, 700) (300, 100)) black 100 world draw handleEvent handleTime
 
 
 -- random for tuples
@@ -152,6 +149,7 @@ createGame images = Game
     , numMine = 0
     }
 
+
 draw :: Game -> IO Picture
 draw game = do 
                 let c   = fromIntegral size
@@ -160,11 +158,14 @@ draw game = do
                 let numb = 0.4
                 let x   = fromIntegral initX
                 let y   = fromIntegral initY
-                let drawLabel label = translate (x - 50) (y + 50) 
+                let drawLabelStart label = translate (x - 50) (y + 50) 
                                                         (scale numb numb (color white $ text 
                                                             (label)))
+                let drawLabelGame label = translate (x - 50) (y + 50) 
+                                                        (scale 0.35 0.35 (color white $ text 
+                                                            (label)))
                 case (state game) of
-                    Start -> return (pictures [drawLabel (label game)
+                    Start -> return (pictures [drawLabelStart (label game)
                                                , translate (x + 110) (y - 130) 
                                                         (scale numb numb (color white $ text 
                                                             (show (numMine game))))
@@ -175,10 +176,12 @@ draw game = do
 
                     otherwise -> return (pictures 
                                                 [ drawEmpty x y s c (open (imgs game))
-                                                , drawLabel ((label game) ++ "  " ++ show((numMine game)))
+                                                , drawLabelGame ((label game) ++ " " ++ show((numMine game)))
                                                 , drawBoard x y s txt c game
-                                                , translate (x + 25) (y -  fromIntegral height * fromIntegral size) 
+                                                , translate (x + 25) (y -  ((fromIntegral height) + 0.7) * fromIntegral size) 
                                                                             (scale 0.2 0.17 (restart (imgs game)))
+                                                , translate (x + 150) (y -  fromIntegral (height + 1) * fromIntegral size) 
+                                                            (scale 0.3 0.3 (color white $  text ("Timer: " ++ (format $ timer game))))
                                                 ])
                     
 
@@ -250,7 +253,7 @@ checkPushButton (x, y) game     | fromIntegral initX + 225 < x && fromIntegral i
                                 | fromIntegral initX + 225 < x && fromIntegral initX + 275 > x &&
                                   fromIntegral initY - 135 > y && fromIntegral initY - 185 < y = castIO (changeMine '-' game) 
                                 | fromIntegral initX + 115 < x && fromIntegral initX + 215 > x &&
-                                  fromIntegral initY - 185 > y && fromIntegral initY - 235 < y = getGame game
+                                  fromIntegral initY - 185 > y && fromIntegral initY - 235 < y = do  getGame game
                                 | otherwise = castIO game  
 
 changeMine :: Char -> Game -> Game
@@ -265,6 +268,7 @@ changeMine c game = Game
                                                 True -> n
                                                 False -> n - 1
                                     '+' -> n + 1
+                     , timer = (timer game)
                     }
                   where 
                      n = numMine game 
@@ -272,20 +276,52 @@ changeMine c game = Game
 getGame :: Game -> IO Game
 getGame game = do 
             gen <- getStdGen
+            time <- getCurrentTime
             let mines = genMinePoints (numMine game) gen
             let gameMap = createGameMap mines
             return Game 
                     { board = (board game)           
                     , closeBoard = gameMap
-                    , label = "This is saper game!"
+                    , label = "This is sapper game!"
                     , imgs  = (imgs game)
                     , state   = Play
                     , numMine = (numMine game)
+                    , timer = secondsToDiffTime 0
                     }
 
 
+
 handleTime :: Float ->  Game -> IO Game
-handleTime _ w = castIO w
+handleTime dsec game = case (state game) of
+                                Play -> castIO (incTimer game dsec)
+                                otherwise -> castIO game
+
+
+format :: DiffTime -> String
+format dt = show min ++ ":" ++ sec_show sec 
+              where
+                sec_show sec  | sec < 10  = "0" ++ show sec
+                              | otherwise = show sec
+                min = floor dt `div` 60
+                sec = floor dt `mod` 60
+
+
+seconds2DiffTime :: Float -> DiffTime
+seconds2DiffTime = realToFrac 
+
+
+incTimer :: Game -> Float -> Game
+incTimer  game dsec = Game
+                    {  board = (board game)          
+                     , closeBoard = (closeBoard game)
+                     , label = (label game)
+                     , imgs  = (imgs game)
+                     , state   = (state game)
+                     , numMine = (numMine game)
+                     , timer = (timer game) + (seconds2DiffTime dsec)
+                    }
+
+
 
 mouseToCell :: G.Point  -> (Int, Int)
 mouseToCell (x, y) = case (i > -1 && i < height && j > -1 && j < height) of 
@@ -297,7 +333,7 @@ mouseToCell (x, y) = case (i > -1 && i < height && j > -1 && j < height) of
             i = floor (x - custX + delta) `div` size          
             j = floor (fromIntegral height - y + fromIntegral initY + delta) `div` size
             custX = fromIntegral initX
-            custY = fromIntegral initY - fromIntegral height * fromIntegral size 
+            custY = fromIntegral initY - ((fromIntegral height) + 0.7) * fromIntegral size 
 
 openCellGUI :: (Int, Int) -> Game -> Game
 openCellGUI (x, y) game = case elem of  
@@ -309,6 +345,7 @@ openCellGUI (x, y) game = case elem of
                                          , imgs  = (imgs game)
                                          , state   = Finish
                                          , numMine = 0
+                                         , timer = (timer game)
                                         }
                                     False -> Game 
                                         { board = openCell (closeBoard game) (x, y) b           
@@ -317,6 +354,7 @@ openCellGUI (x, y) game = case elem of
                                          , imgs  = (imgs game)
                                          , state   = (state game)
                                          , numMine = (numMine game)
+                                         , timer = (timer game)
                                         }
                     otherwise -> game
                 where 
@@ -340,6 +378,7 @@ setFlag (x, y) game = Game
                                         False -> n - 1
                               MineFlag -> n + 1
                               otherwise -> n
+                    , timer = (timer game)
                     }
                     where 
                         b = (board game)
@@ -356,6 +395,7 @@ check game = case (state game) of
                           , imgs  = (imgs game)
                           , state   = Finish
                           , numMine = 0
+                          , timer = (timer game)
                           }
                     False -> game
             otherwise -> game
