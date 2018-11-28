@@ -16,6 +16,8 @@ dependencies:
   - gloss
   - gloss-juicy
   - random
+  - time
+  - old-locale
 
 executables:
   saper:
