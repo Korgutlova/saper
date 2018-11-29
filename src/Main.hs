@@ -136,6 +136,8 @@ loadImages = Images
   <*> fmap fold (loadJuicyPNG "img/plus.png")
   <*> fmap fold (loadJuicyPNG "img/generate.png")
   <*> fmap fold (loadJuicyPNG "img/restart.png")
+  <*> fmap fold (loadJuicyPNG "img/mine.png")
+
 
 
 
@@ -212,11 +214,13 @@ drawBoard x y s txt c game = pictures (b)
     where
         b = map (\(i, j) -> case (getElem cust_map i j) of 
                             NotOpen    -> translate (x + j * c) (y - i * c) (scale s s (block (imgs game)))
+                            OpenMine   -> translate (x + j * c) (y - i * c) (scale s s (openMine (imgs game)))
                             Mine       -> translate (x + j * c) (y - i * c) (scale s s (mine (imgs game)))
                             MineFlag   -> translate (x + j * c) (y - i * c) (scale s s (flag (imgs game)))
                             Cell 0     -> translate (x + j * c) (y - i * c) (scale s s (open (imgs game)))
                             Cell z     -> translate (x + j * c - deltax) (y - i * c - deltay) 
                                         (scale txt txt (color black $ text (show z))))
+
             (generateArray (n, m) m n)
         cust_map = (board game)
         n        = fromIntegral width - 1
@@ -339,7 +343,7 @@ openCellGUI :: (Int, Int) -> Game -> Game
 openCellGUI (x, y) game = case elem of  
                     NotOpen -> case checkMine (x, y) (closeBoard game) of
                                     True -> Game
-                                        {  board = (closeBoard game)
+                                        {  board = changeCell (x, y) (closeBoard game) OpenMine
                                          , closeBoard = (closeBoard game)
                                          , label = "  GAME OVER!!!  "
                                          , imgs  = (imgs game)

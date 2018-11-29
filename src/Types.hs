@@ -4,7 +4,7 @@ import Data.Char
 import Graphics.Gloss
 import Data.Time.Clock
 
-data CellState a = Mine | NotOpen | MineFlag | Cell a deriving(Show, Eq)
+data CellState a = OpenMine | Mine | NotOpen | MineFlag | Cell a deriving(Show, Eq)
 
 data StateGame      = Start | Play | Finish            
 type Point          = (Int, Int)
@@ -24,14 +24,15 @@ data Game = Game
             }
 
 data Images = Images 
-            { mine  :: Picture
-            , flag  :: Picture 
-            , block :: Picture
-            , open  :: Picture
-            , plus  :: Picture
-            , minus :: Picture
-            , generate :: Picture
-            , restart :: Picture
+            { mine      :: Picture
+            , flag      :: Picture 
+            , block     :: Picture
+            , open      :: Picture
+            , plus      :: Picture
+            , minus     :: Picture
+            , generate  :: Picture
+            , restart   :: Picture
+            , openMine  :: Picture
             }
 
 size :: Int
