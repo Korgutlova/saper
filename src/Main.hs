@@ -123,9 +123,6 @@ checkMine coord gameMap = case (getCell coord gameMap) of
 getCell :: Types.Point -> GameMap -> (CellState Int)
 getCell coord gameMap = gameMap !! (fst coord) !! (snd coord)
 
--- initWorld :: IO Game
--- initWorld =  createGame <$> loadImages
-
 loadImages :: IO Images
 loadImages = Images
   <$> fmap fold (loadJuicyPNG "img/bomb.png")
@@ -137,8 +134,6 @@ loadImages = Images
   <*> fmap fold (loadJuicyPNG "img/generate.png")
   <*> fmap fold (loadJuicyPNG "img/restart.png")
   <*> fmap fold (loadJuicyPNG "img/mine.png")
-
-
 
 
 createGame :: Images -> Game
@@ -343,7 +338,7 @@ openCellGUI :: (Int, Int) -> Game -> Game
 openCellGUI (x, y) game = case elem of  
                     NotOpen -> case checkMine (x, y) (closeBoard game) of
                                     True -> Game
-                                        {  board = changeCell (x, y) (closeBoard game) OpenMine
+                                        {  board = changeCell (x, y) (changeMineToFlag b (closeBoard game)) OpenMine
                                          , closeBoard = (closeBoard game)
                                          , label = "  GAME OVER!!!  "
                                          , imgs  = (imgs game)
@@ -364,6 +359,19 @@ openCellGUI (x, y) game = case elem of
                 where 
                     elem = b !! x !! y
                     b = (board game)
+
+--implement
+
+changeMineToFlag :: ExploredBoard -> GameMap -> GameMap
+changeMineToFlag explBoard gameMap = gameMap
+
+changeMineToFlagCoord :: ExploredBoard -> GameMap -> Types.Point -> GameMap
+changeMineToFlagCoord explBoard gameMap coord = case getCell coord explBoard of 
+                                                    MineFlag -> case (getCell coord gameMap == Mine) of 
+                                                                True -> changeCell coord gameMap MineFlag
+                                                                False -> gameMap 
+                                                    otherwise -> gameMap
+
 setFlag :: (Int, Int) -> Game -> Game
 setFlag (x, y) game = Game 
                     { board = case elem of 
