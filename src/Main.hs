@@ -363,10 +363,13 @@ openCellGUI (x, y) game = case elem of
 --implement
 
 changeMineToFlag :: ExploredBoard -> GameMap -> GameMap
-changeMineToFlag explBoard gameMap = gameMap
+changeMineToFlag explBoard gameMap = foldr (changeMineToFlagCoord explBoard) gameMap coords
+                        where 
+                          coords = [(i,j) | i <- [0..(width-1)], j <-  [0..(height-1)]]
 
-changeMineToFlagCoord :: ExploredBoard -> GameMap -> Types.Point -> GameMap
-changeMineToFlagCoord explBoard gameMap coord = case getCell coord explBoard of 
+
+changeMineToFlagCoord :: ExploredBoard -> Types.Point -> GameMap -> GameMap
+changeMineToFlagCoord explBoard coord gameMap = case getCell coord explBoard of 
                                                     MineFlag -> case (getCell coord gameMap == Mine) of 
                                                                 True -> changeCell coord gameMap MineFlag
                                                                 False -> gameMap 
