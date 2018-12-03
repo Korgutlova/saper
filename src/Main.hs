@@ -274,7 +274,7 @@ changeMine c game = Game
 
 getGame :: Game -> IO Game
 getGame game = do 
-            gen <- getStdGen
+            gen <- newStdGen
             time <- getCurrentTime
             let mines = genMinePoints (numMine game) gen
             let gameMap = createGameMap mines
