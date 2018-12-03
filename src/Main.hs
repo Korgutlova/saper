@@ -33,7 +33,7 @@ instance (Random x, Random y) => Random (x, y) where
 
 -- generate mines locations
 genMinePoints :: RandomGen gen => Int -> gen -> [Types.Point]
-genMinePoints n gen = take n $ nub $ take (n*2) $ randomRs ((0,0),(width-1,height-1)) $ gen :: [(Int,Int)]
+genMinePoints n gen = take n $ nub $ take (n*n) $ randomRs ((0,0),(width-1,height-1)) $ gen :: [(Int,Int)]
 
 -- generate game map
 createGameMap :: [Types.Point] -> GameMap
@@ -143,7 +143,7 @@ createGame images = Game
     , label = "Choose number of mines"  
     , imgs  = images
     , state = Start
-    , numMine = 0
+    , numMine = 15
     }
 
 
@@ -227,7 +227,9 @@ getElem :: ExploredBoard -> Float -> Float -> CellState Int
 getElem cust_map i j = cust_map !! (round i) !! (round j)
 
 handleEvent :: Event -> Game -> IO Game
-handleEvent (EventKey (Char c) Up _ _) game = castIO (changeMine c game)
+handleEvent (EventKey (Char c) Up _ _) game = case (state game) of 
+                                          Start -> castIO (changeMine c game)
+                                          otherwise -> castIO (game)
 
 handleEvent (EventKey (MouseButton k) Down _ mouse) game = case (state game) of 
                                 Start -> case k of 
@@ -266,7 +268,10 @@ changeMine c game = Game
                                     '-' -> case n == 0 of 
                                                 True -> n
                                                 False -> n - 1
-                                    '+' -> n + 1
+                                    '+' -> case n == 100 of 
+                                                True -> n
+                                                False -> n + 1
+                                    otherwise -> n
                      , timer = (timer game)
                     }
                   where 
