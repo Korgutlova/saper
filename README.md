@@ -8,16 +8,17 @@
 Что бы пометить ячейку, в которой находится бомба, нажмите её правой кнопкой мыши.
 Если в ячейке указано число, оно показывает, сколько мин скрыто в восьми ячейках вокруг данной. Это число помогает понять, где находятся безопасные ячейки.
 
+![game saper](https://pp.userapi.com/c845018/v845018561/15d47b/pSF6YSP9BM8.jpg)
 
-#Сборка и запуск
+# Сборка и запуск
 Клонируйте репозиторий:
 
 ```
-git clone <https://github.com/Korgutlova/saper.git>
+git clone https://github.com/Korgutlova/saper.git
 cd saper
 ```
 
-Соберите проект при помощи [утилиты Stack]:https://docs.haskellstack.org/en/stable/README/:
+Соберите проект при помощи [утилиты Stack](https://docs.haskellstack.org/en/stable/README/):
 ```
 stack setup
 stack build
